@@ -2,7 +2,7 @@
 ml.py - Machine Learning Module for ProfitGuard AI
 Implements from-scratch K-Means clustering using pure NumPy.
 Features:
-- Centroid initialization (k-means++ / random restart)
+- Uniform random-point centroid initialization with multiple restarts
 - Vectorized Euclidean distance assignment
 - Centroid update step
 - Convergence checking with tolerance
@@ -53,7 +53,7 @@ class KMeansFromScratch:
         self.inertia_ = None
 
     def _init_centroids(self, X, rng):
-        """Random sample initialization."""
+        """Forgy initialization: sample distinct observations uniformly."""
         n_samples = X.shape[0]
         indices = rng.choice(n_samples, size=self.n_clusters, replace=False)
         return X[indices].copy()
@@ -148,11 +148,15 @@ def compute_silhouette_score_sample(X, labels, sample_size=1000, random_state=42
         same_mask = (labels_sub == labels_sub[i])
         other_clusters = [k for k in unique_labels if k != labels_sub[i]]
 
-        # Intra-cluster distance a(i)
-        if np.sum(same_mask) > 1:
-            a_i = np.mean(np.linalg.norm(X_sub[same_mask] - X_sub[i], axis=1)[1:])
+        # Intra-cluster distance a(i); explicitly remove this point from its
+        # own cluster. A singleton's silhouette is defined as zero.
+        intra_mask = same_mask.copy()
+        intra_mask[i] = False
+        if np.any(intra_mask):
+            a_i = np.mean(np.linalg.norm(X_sub[intra_mask] - X_sub[i], axis=1))
         else:
-            a_i = 0.0
+            s_values.append(0.0)
+            continue
 
         # Nearest cluster distance b(i)
         b_candidates = []

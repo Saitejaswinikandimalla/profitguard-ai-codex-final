@@ -1,37 +1,35 @@
 # 🛡️ ProfitGuard AI
-### *Intelligent Revenue Leakage Detection & Real-Time Decision-Support Platform*
+### *Transaction Margin Review & Customer Segmentation Prototype*
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Active_Online-brightgreen?logo=googlechrome&logoColor=white)](https://saitejaswinikandimalla.github.io/profitguard-ai/)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Datathon 2026](https://img.shields.io/badge/Datathon_2026-Track_4:_Business-orange)](https://github.com/Saitejaswinikandimalla/profitguard-ai)
-[![Zero Dependency](https://img.shields.io/badge/Architecture-Zero--Dependency_Engine-emerald)](https://github.com/Saitejaswinikandimalla/profitguard-ai)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 
 ---
 
 ## 📌 Executive Summary
 
-**ProfitGuard AI** is an enterprise-grade revenue intelligence platform engineered for **DATATHON 2026 — Track 4 (Business: The Money Leak)**. 
+**ProfitGuard AI** is a prototype for **DATATHON 2026 — Track 4 (Business: The Money Leak)**. It reviews transaction-level unit economics, highlights records for human investigation, and groups customers using RFM features.
 
-Modern e-commerce and retail pipelines frequently suffer from silent, compounding profitability drain caused by catalog mispricings, unmonitored promotional stacking, and inefficient customer retention. By unifying decoupled transactional, catalog, and inventory logs, **ProfitGuard AI** delivers immediate mathematical auditability, root-cause categorization, and machine learning customer segmentation to safeguard bottom-line margins.
+The prototype joins the supplied transaction and product data to estimate gross margin and explain each review flag. Its RFM clustering is exploratory; it does not predict churn, prove causes, change prices, or recover revenue.
 
 ---
 
 ## 📊 High-Impact Competition Audit Metrics
 
-Across **18,000 real-world competition records**, ProfitGuard AI uncovered massive silent margin erosion:
+On the **18,000-row synthetic educational dataset supplied for Track 4**, ProfitGuard AI flags estimated negative gross margin for investigation. These figures describe this dataset only; they do not establish real-world performance or prove that the full amount is recoverable:
 
 | Metric | Measured Value | Business Impact |
 | :--- | :--- | :--- |
 | **Completed Transacted Volume** | **₹73.02 Lakhs** | Total gross completed sales analyzed |
-| **Detected Cumulative Leakage** | **₹12.14 Lakhs** | **16.63% bottom-line loss** silently drained |
-| **Margin-Negative Orders** | **5,315 orders** | **38.07%** of completed transactions lost money |
-| **Catalog Price Inversions** | **4,770 SKUs** | Products cataloged with $Unit\_Price < Unit\_Cost$ |
-| **High-Risk Recoverable Value** | **₹4.85 Lakhs** | Immediate recovery via automated checkout barrier |
-| **Audited Customers (RFM)** | **400+ accounts** | Clustered by retention risk and lifetime value |
+| **Estimated Negative Gross Margin** | **₹12.14 Lakhs** | **16.63% of completed revenue** in completed transactions with negative estimated gross margin |
+| **Margin-Negative Orders** | **5,315 orders** | **38.07%** of completed transactions |
+| **Base Price Inversion Orders** | **4,770 orders** | Across **76 unique SKUs** where transaction price is below unit cost |
+| **Audited Customers (RFM)** | **2,971 profiles** | RFM features are derived from completed transaction history |
 
 ---
 
-## 🔄 End-to-End Revenue Leakage Flowchart
+## 🔄 Transaction Review and RFM Flow
 
 ```mermaid
 flowchart TD
@@ -45,19 +43,18 @@ flowchart TD
     
     B --> C{"Check Order Margin<br/>Total_Margin < 0 ?"}:::auditNode
     
-    C -- "YES: Leak Detected" --> D{"Diagnose Root Cause"}:::dangerNode
-    D -- "Base Price < Unit Cost" --> E["⚠️ Catalog Inversion<br/>(Risk Score: 95/100)"]:::dangerNode
-    D -- "Excessive Promo Discount" --> F["📉 Promo Erosion<br/>(Risk Score: 80/100)"]:::dangerNode
+    C -- "YES: Negative Estimated Margin" --> D{"Classify Review Signal"}:::dangerNode
+    D -- "Base Price < Unit Cost" --> E["⚠️ Price Below Cost"]:::dangerNode
+    D -- "Discount takes price below cost" --> F["📉 Discount Review"]:::dangerNode
     
-    E --> G["🛑 Actionable Intervention Barrier<br/>(Freeze SKU / Enforce Floor Margin)"]:::dangerNode
+    E --> G["🧭 Suggested Review<br/>(Check price, promotion, and context)"]:::dangerNode
     F --> G
     
-    C -- "NO: Healthy Margin" --> H["✅ Profitable Sale<br/>(Risk Score: 15/100)"]:::successNode
-    H --> I["📈 Growth & Upsell Pipeline"]:::successNode
+    C -- "NO: Non-negative Estimated Margin" --> H["✅ No Negative-Margin Flag"]:::successNode
+    H --> I["📈 No negative-margin review flag"]:::successNode
     
-    A --> J["🧠 Unsupervised RFM Segmenter<br/>(Pure NumPy K-Means, K=4)"]:::mlNode
-    J --> K["👥 Behavioral Customer Cohorts<br/>(VIP Champions · At-Risk · Churn)"]:::mlNode
-    K --> G
+    A --> J["🧠 Exploratory RFM Clustering<br/>(Pure NumPy K-Means, K=4)"]:::mlNode
+    J --> K["👥 Customer Groups<br/>(Cluster labels and profile averages)"]:::mlNode
 ```
 
 ---
@@ -76,19 +73,19 @@ flowchart LR
 
     subgraph ComputeTier["⚡ 2. Processing & Intelligence Tier"]
         CoreEngine["Deterministic Audit Engine<br/>(Python / Zero-Dependency)"]
-        KMeans["From-Scratch K-Means<br/>(Pure NumPy / Silhouette: 0.384)"]
+        KMeans["From-Scratch K-Means<br/>(Pure NumPy / Full-cohort silhouette: 0.3052)"]
         Export["Static Pre-Bake & JSON Exporter"]
     end
 
     subgraph InfraTier["🌐 3. Delivery & Cloud Tier"]
         GH["GitHub Source Repository<br/>(Saitejaswinikandimalla/profitguard-ai)"]
-        VercelEdge["Vercel Global Edge Network<br/>(Instant CDN + Rewrites)"]
+        StaticHost["GitHub Pages Static Hosting<br/>(Bundled data.json)"]
     end
 
     ClientTier <--> ComputeTier
     ComputeTier --> InfraTier
-    InfraTier --> VercelEdge
-    VercelEdge --> ClientTier
+    InfraTier --> StaticHost
+    StaticHost --> ClientTier
 ```
 
 ---
@@ -106,10 +103,10 @@ $$\text{Unit Margin} = \text{Effective Price} - \text{Unit Cost}$$
 ### 3. Total Transaction Margin
 $$\text{Total Margin} = \text{Quantity} \times \text{Unit Margin}$$
 
-### 4. Leakage Taxonomy & Automated Root-Cause Attribution
-* **Catalog Mispricing**: Occurs when base catalog price fails to clear cost before discount ($\text{Unit Price} < \text{Unit Cost}$).
-* **Excessive Promo Erosion**: Occurs when unit price is nominally above cost, but promotional discount reduces effective realization below supplier cost ($\text{Unit Price} \ge \text{Unit Cost} \land \text{Unit Margin} < 0$).
-* **Return Loss**: Cost of reverse logistics and margin cancellation on returned merchandise.
+### 4. Review Flags and Suggested Investigation
+* **Price Below Cost**: Flags transactions where recorded base unit price is below unit cost. This is a review signal, not proof of an erroneous or unintentional price.
+* **Discount Review**: The recorded base price is at least unit cost, but the assumed discount calculation makes the estimated realization lower than unit cost ($\text{Unit Price} \ge \text{Unit Cost} \land \text{Unit Margin} < 0$).
+* **Returns**: Included in status summaries. The supplied data does not provide reverse-logistics costs, so this prototype does not estimate return loss.
 
 ---
 
@@ -120,7 +117,7 @@ $$\text{Total Margin} = \text{Quantity} \times \text{Unit Margin}$$
 ![Executive Dashboard](screenshots/screen1_executive.png)
 
 ### 2. Live Transaction Leakage Inspector
-*Granular real-time feed with severity tags, calculated risk scores, and one-click mathematical audit trails.*
+*Transaction review table with margin flags and step-by-step calculations.*
 ![Minimal Light SaaS Dashboard](screenshots/screen2_minimal_light.png)
 
 ### 3. Unsupervised RFM Machine Learning Clusters
@@ -143,22 +140,15 @@ sequenceDiagram
     actor Ops as Operations / Finance
     participant App as ProfitGuard Core
     participant ML as Pure NumPy K-Means
-    participant Action as Intervention Engine
 
     Ops->>App: Ingest transactions & customer logs
     App->>ML: Extract (Recency, Frequency, Monetary) vectors
     ML->>ML: MinMax Scaling & Euclidean Centroid Iterations
-    ML-->>App: Assigned Cluster Labels (K=4, Silhouette: 0.384)
-    App->>Action: Map Clusters to Revenue Protection Playbooks
-    Action-->>Ops: Direct Alert: Protect 84 At-Risk High-Spenders
+    ML-->>App: Assigned Cluster Labels (K=4, Full-cohort silhouette: 0.3052)
+    App-->>Ops: Explore descriptive customer groups and profile context
 ```
 
-| Cohort | Recency | Frequency | Spend Profile | Action Playbook |
-| :--- | :--- | :--- | :--- | :--- |
-| **1. VIP Champions** | Low ($< 30$ days) | High ($> 15$ orders) | Top 5% Monetary | Exclusive loyalty perks, zero steep promos |
-| **2. Loyal Core** | Medium ($30-90$ days) | Medium ($6-15$ orders) | Stable positive margins | Standard engagement, cross-sell high-margin SKUs |
-| **3. At-Risk High Spenders** | High ($> 120$ days) | High ($> 10$ orders) | Large historical spend | **Priority Re-engagement Campaign** (Win-back) |
-| **4. Discount Seekers / Churn** | High ($> 180$ days) | Low ($1-2$ orders) | High leakage association | Impose strict promo barrier (limit discount $\le 15\%$) |
+K-Means returns cluster numbers and profile averages. The numbers are exploratory groups, not validated customer types or churn labels; the app does not trigger campaigns or prescribed actions.
 
 ---
 
@@ -170,7 +160,14 @@ sequenceDiagram
 | **Visualization** | Chart.js, Mermaid.js | Clean responsive graphs, dynamic line curves, interactive scatter |
 | **Backend Engine** | Python 3 (Native HTTP Server) | Zero external dependencies, portable across any OS/cloud |
 | **Machine Learning** | Pure NumPy (`ml.py`) | Handcrafted K-Means algorithm demonstrating mathematical rigor |
-| **Cloud Hosting** | Vercel Edge & GitHub Pages | Serverless global distribution, automated continuous delivery |
+| **Hosting** | GitHub Pages static frontend; local Python / optional Streamlit | Static demo plus local full-data workflows |
+
+### Evaluation, data limits & external services
+
+- The full-cohort K-Means silhouette score is **0.3052** for K=4 using RFM features, standardization, five random initializations, and seed 42. The Streamlit UI reports an approximate score on a deterministic 1,000-customer sample (**0.2999**). These are descriptive clustering scores, not predictive accuracy or evidence of real-world impact. The transaction review table uses transparent rule-based flags; it does not show a calibrated risk score.
+- The provided Track 4 files are synthetic educational data. All money-at-risk values are estimates from the stated unit-margin formula; the app does not integrate with checkout or recover revenue.
+- No hosted AI model, third-party AI API, or extra dataset is used. K-Means is implemented in `backend/ml.py`. The browser dashboard loads Chart.js from jsDelivr; the Streamlit sidebar loads its shield image from Icons8. The local Python server exposes its own `/api/data` endpoint and the static site falls back to `data.json`.
+- The public static dashboard and optional Streamlit dashboard are separate interfaces. The Streamlit app reads all five supplied CSVs: transactions and products for margin review, customer profiles to enrich RFM exploration, inventory for stockout/supplier-delay summaries, and campaigns for channel spend/conversion summaries. These are descriptive analyses; they do not claim causal impact.
 
 ---
 
@@ -182,13 +179,23 @@ git clone https://github.com/Saitejaswinikandimalla/profitguard-ai.git
 cd profitguard-ai
 ```
 
-### 2. Run Instant Local Dashboard (Zero Setup)
+### 2. Run the full local prototype (Zero Setup)
 ```bash
 python backend/server.py
 ```
 Open **`http://localhost:8501`** in any web browser.
 
-### 3. Run Streamlit Application (Alternative)
+The local dashboard loads all 18,000 transactions and 2,971 customer profiles. Search across orders, filter by leakage type, inspect the per-order margin calculation, page through results, and export the current filtered set as CSV. Charts and summary cards are calculated from the loaded data.
+
+### 3. Refresh the static hosting data
+
+GitHub Pages uses the bundled `data.json` file. After changing the source CSV files, regenerate it before deploying:
+
+```bash
+python backend/build_data.py
+```
+
+### 4. Run Streamlit Application (Alternative)
 ```bash
 python -m pip install -r backend/requirements.txt
 streamlit run backend/app.py
@@ -201,10 +208,10 @@ streamlit run backend/app.py
 ```
 profitguard-ai/
 ├── index.html                  # Standalone client application for cloud hosting
-├── data.json                   # Pre-baked audited dataset for edge CDN delivery
+├── data.json                   # Precomputed dataset for static hosting
 ├── vercel.json                 # Vercel deployment and routing configuration
 ├── backend/                    # Core Python engine and ML algorithms
-│   ├── server.py               # Zero-dependency Python server with live API & web UI
+│   ├── server.py               # Python HTTP server with first-party data endpoint and web UI
 │   ├── app.py                  # Interactive Streamlit analytics dashboard
 │   ├── ml.py                   # Pure NumPy RFM feature extractor & K-Means engine
 │   └── requirements.txt        # Dependency list

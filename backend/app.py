@@ -58,7 +58,7 @@ st.markdown("""
 def load_and_preprocess_data():
     base_dir = os.path.join(os.path.dirname(__file__), "data")
     if not os.path.exists(base_dir):
-        base_dir = r"c:\Users\tejas\AppData\Local\Temp"
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 
     products_path = os.path.join(base_dir, "products.csv")
     transactions_path = os.path.join(base_dir, "transactions.csv")
@@ -100,9 +100,9 @@ def load_and_preprocess_data():
         if not row['is_leakage']:
             return "Profitable / Healthy"
         if row['unit_price'] < row['unit_cost']:
-            return "Catalog Mispricing (List Price < Cost)"
+            return "Price Below Cost (Base Price < Cost)"
         else:
-            return "Excessive Discount (Promo Leakage)"
+            return "Discount Review (Discount takes estimated price below cost)"
 
     df['leakage_reason'] = df.apply(diagnose_leakage, axis=1)
 
@@ -141,7 +141,7 @@ st.sidebar.info(
 # -------------------------------------------------------------
 if page == "1. Executive Overview":
     st.title("📊 Executive Business Overview")
-    st.write("Holistic audit of transaction economics, revenue volume, and detected margin leakage across all sales.")
+    st.write("Dataset-level review of transaction economics, completed sales, and transactions with estimated negative gross margin.")
 
     completed_df = df[df['status'] == 'Completed']
     total_tx = len(df)
@@ -161,9 +161,9 @@ if page == "1. Executive Overview":
     with col3:
         st.metric("Completed Revenue", f"₹{total_rev/1e5:,.2f} Lakhs", help=f"₹{total_rev:,.2f}")
     with col4:
-        st.metric("Risk / Leakage Orders", f"{leakage_tx_count:,} ({leakage_pct:.1f}%)", delta="-38.1%", delta_color="inverse")
+        st.metric("Negative-Margin Orders", f"{leakage_tx_count:,} ({leakage_pct:.1f}%)", help="Calculated from supplied synthetic prices, discounts, quantities, and product costs.")
     with col5:
-        st.metric("Total Revenue Leakage", f"₹{total_leakage_loss/1e5:,.2f} Lakhs", delta=f"-₹{total_leakage_loss:,.0f}", delta_color="inverse")
+        st.metric("Estimated Negative Gross Margin", f"₹{total_leakage_loss/1e5:,.2f} Lakhs", help="An estimate for investigation; not proof of recoverable revenue.")
 
     st.divider()
 
@@ -213,8 +213,8 @@ if page == "1. Executive Overview":
         fig_donut.update_layout(margin=dict(l=20, r=20, t=30, b=20))
         st.plotly_chart(fig_donut, use_container_width=True)
 
-    st.subheader("🚨 Priority Investigations: Top 10 Worst Leakage Transactions")
-    st.write("Completed transactions resulting in the steepest financial losses:")
+    st.subheader("🚨 Priority Review: 10 Largest Negative-Margin Transactions")
+    st.write("Completed transactions with the lowest estimated margins:")
     leakage_sorted = completed_df[completed_df['is_leakage']].sort_values(by='total_margin').head(10)
     display_cols = [
         'transaction_id', 'product_id', 'category', 'quantity',
@@ -234,7 +234,7 @@ if page == "1. Executive Overview":
 # PAGE 2: REVENUE LEAKAGE DETECTOR
 # -------------------------------------------------------------
 elif page == "2. Revenue Leakage Detector":
-    st.title("🔍 Revenue Leakage Detector & Root Cause Explorer")
+    st.title("🔍 Transaction Margin Review")
     st.write("Inspect individual transactions, understand unit economics, and see transparent mathematical explanations.")
 
     completed_df = df[df['status'] == 'Completed']
@@ -247,8 +247,8 @@ elif page == "2. Revenue Leakage Detector":
             ["All"] + sorted(completed_df['category'].dropna().unique().tolist())
         )
         leakage_reason_filter = st.selectbox(
-            "Filter by Leakage Root Cause",
-            ["All", "Catalog Mispricing (List Price < Cost)", "Excessive Discount (Promo Leakage)"]
+            "Filter by Review Signal",
+            ["All", "Price Below Cost (Base Price < Cost)", "Discount Review (Discount takes estimated price below cost)"]
         )
 
     filtered = leakage_df
@@ -301,23 +301,23 @@ elif page == "2. Revenue Leakage Detector":
             st.markdown("#### 🛡️ ProfitGuard Diagnostic")
             if tx['unit_price'] < tx['unit_cost']:
                 st.error(
-                    f"**ROOT CAUSE: Catalog Mispricing**\n\n"
+                    f"**FLAG: Price Below Cost**\n\n"
                     f"The recorded unit price (₹{tx['unit_price']:.2f}) was ALREADY lower than unit cost (₹{tx['unit_cost']:.2f}) before applying discount!\n\n"
-                    f"**Prescribed Action:** Check vendor pricing agreement or correct master catalog price."
+                    f"This is a review signal, not proof of an error. Check the cost basis, approved promotion, clearance plan, and basket context before acting."
                 )
             else:
                 st.warning(
-                    f"**ROOT CAUSE: Uncontrolled Discount Leakage**\n\n"
-                    f"The unit price (₹{tx['unit_price']:.2f}) was above cost (₹{tx['unit_cost']:.2f}), but the discount of {tx['discount_pct']*100:.1f}% reduced the selling price below cost.\n\n"
-                    f"**Prescribed Action:** Enforce automated discount floor barrier in checkout system."
+                    f"**FLAG: Discount reduces estimated price below cost**\n\n"
+                    f"The recorded unit price (₹{tx['unit_price']:.2f}) was above cost (₹{tx['unit_cost']:.2f}), but the {tx['discount_pct']*100:.1f}% discount brings the estimated selling price below cost.\n\n"
+                    f"Review the discount, cost basis, promotion approval, and basket context before taking action. This prototype does not enforce checkout rules."
                 )
 
 # -------------------------------------------------------------
 # PAGE 3: CUSTOMER INTELLIGENCE (ML)
 # -------------------------------------------------------------
 elif page == "3. Customer Intelligence (ML)":
-    st.title("🧠 Customer Intelligence & RFM Behavioral Segmentation")
-    st.write("Unsupervised Machine Learning model built **from scratch with pure NumPy** (no scikit-learn dependency).")
+    st.title("🧠 Customer Profile & RFM Exploration")
+    st.write("Exploratory customer grouping with a from-scratch **NumPy K-Means** model; profile fields provide context but are not model inputs.")
 
     with st.expander("ℹ️ ML Model Architecture & Technical Details", expanded=False):
         st.markdown("""
@@ -325,13 +325,16 @@ elif page == "3. Customer Intelligence (ML)":
         - **Features (RFM):**
           - **Recency ($R$):** Days since customer's last completed purchase
           - **Frequency ($F$):** Total count of completed orders
-          - **Monetary ($M$):** Total net purchase value (₹)
-        - **Optimization:** Vectorized Euclidean distance, convergence checking ($\Delta < 10^{-4}$), $N=5$ random restarts to prevent local minima.
+        - **Monetary ($M$):** Total completed-order sales value (₹), before product cost
+        - **Optimization:** Vectorized Euclidean distance, convergence checking ($\\Delta < 10^{-4}$), $N=5$ random restarts to reduce local-minimum sensitivity.
         - **Validation:** Sample-based Silhouette Score calculation ($N=1,000$).
         """)
 
     with st.spinner("Extracting RFM features from transactions..."):
         rfm_df = extract_rfm_features(df)
+        profile_columns = [c for c in ["customer_id", "region", "customer_segment", "preferred_channel"] if c in customers_df.columns]
+        if len(profile_columns) > 1:
+            rfm_df = rfm_df.merge(customers_df[profile_columns].drop_duplicates("customer_id"), on="customer_id", how="left")
 
     col_ctrl, col_stats = st.columns([1, 2])
     with col_ctrl:
@@ -368,7 +371,7 @@ elif page == "3. Customer Intelligence (ML)":
             y='monetary',
             color='Cluster',
             size='frequency',
-            hover_data=['customer_id', 'frequency', 'monetary', 'recency'],
+            hover_data=[c for c in ['customer_id', 'region', 'customer_segment', 'preferred_channel', 'frequency', 'monetary', 'recency'] if c in rfm_df.columns],
             labels={'recency': 'Recency (Days Ago)', 'monetary': 'Total Monetary Spend (₹)'},
             color_discrete_sequence=px.colors.qualitative.Bold
         )
@@ -441,16 +444,16 @@ elif page == "4. Inventory & Marketing Diagnostics":
 elif page == "5. Data Quality & Assumptions":
     st.title("📑 Data Quality, Limitations & Assumptions")
     st.markdown("""
-    ### 🔬 Datathon Data Profiling Disclosure
-    Per official guidance for **Track 4: The Money Leak**, synthetic educational datasets have inherent artifacts that require explicit documentation:
+    ### 🔬 Dataset Profile and Assumptions
+    These results use the supplied synthetic educational CSVs. They describe this dataset only and should not be treated as evidence of real-world performance.
 
-    1. **Independent Price & Cost Generation:**  
-       The synthetic data generator created independent distributions for `unit_cost` and transaction `unit_price`, resulting in **5,315 transactions** with negative estimated margins.
+    1. **Observed Negative Margins:**
+       **5,315 completed transactions** have a negative estimated gross margin under the formula below. This count does not establish why the values were generated or whether the transactions were errors.
     2. **Discount Semantics Assumption:**  
        We assume `unit_price` in `transactions.csv` represents the list/pre-discount price, and `discount_pct` is applied at purchase time:
        $$\\text{Effective Selling Price} = P \\times (1 - D)$$
-    3. **Round 2 Enhancement Scope:**  
-       - Integrate predictive customer churn modeling.
-       - Implement dynamic pricing constraint optimization.
-       - Deploy automated email/Slack webhooks for immediate transaction-level margin leakage alerts.
+    3. **Data Coverage:**
+       Transactions are joined to product costs; customer region, supplied segment, and preferred channel enrich the RFM view. Inventory records are summarized for stockout and supplier-delay review. Campaign records are summarized by channel using spend and conversions. These are descriptive joins, not causal attribution.
+    4. **Prototype Scope:**
+       The app provides review flags and descriptive analytics. It does not predict churn, recommend a validated optimal price, connect to a checkout system, or send external alerts.
     """)

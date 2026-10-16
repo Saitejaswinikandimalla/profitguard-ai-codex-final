@@ -301,6 +301,14 @@
 
         .view-panel { display: none; }
         .view-panel.active { display: block; }
+        .search-pill { cursor: text; }
+        .search-pill input { border: 0; outline: 0; background: transparent; width: 100%; color: var(--text-heading); font-size: inherit; }
+        .table-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 12px 0; color: var(--text-muted); font-size: .8rem; }
+        .pagination { display: flex; align-items: center; gap: 8px; }
+        .pagination button:disabled { opacity: .45; cursor: not-allowed; }
+        .table-wrap { overflow-x: auto; }
+        @media (max-width: 900px) { body { height: auto; min-height: 100vh; overflow: auto; } aside { width: 190px; } main { padding: 20px; } .kpi-grid { grid-template-columns: repeat(2, 1fr); } .chart-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 620px) { body { display: block; } aside { width: 100%; padding: 14px; } nav { flex-direction: row; overflow-x: auto; } nav button { white-space: nowrap; } .sidebar-bottom { display: none; } main { padding: 16px; } .top-bar { align-items: flex-start; flex-direction: column; gap: 12px; } .top-actions { width: 100%; flex-wrap: wrap; } .search-pill { flex: 1; } .kpi-grid { gap: 10px; } .kpi-val { font-size: 1.25rem; } .filter-row { overflow-x: auto; } .tab-btn { white-space: nowrap; } }
     </style>
 </head>
 <body>
@@ -314,7 +322,7 @@
         <nav>
             <button class="active" onclick="switchTab('tab-orders', this)">📋 Order Analytics</button>
             <button onclick="switchTab('tab-revenue', this)">📊 Sales & Margins</button>
-            <button onclick="switchTab('tab-customers', this)">👥 Customer ML</button>
+            <button onclick="switchTab('tab-customers', this)">👥 Customer RFM</button>
             <button onclick="switchTab('tab-notes', this)">📑 Data Profiling</button>
         </nav>
 
@@ -334,9 +342,9 @@
                 <p>Detailed insights into transaction economics, realized margins, and risk detection.</p>
             </div>
             <div class="top-actions">
-                <div class="search-pill">🔍 Search transactions...</div>
-                <button class="action-pill">📅 All 18,000 Orders</button>
-                <button class="action-pill" style="background: var(--text-heading); color: #fff;">Export ⤓</button>
+                <label class="search-pill">🔍 <input id="searchInput" type="search" placeholder="Search transactions…" aria-label="Search transactions"></label>
+                <button class="action-pill" id="datasetCount">📅 Loading orders…</button>
+                <button class="action-pill" id="exportButton" style="background: var(--text-heading); color: #fff;">Export CSV ⤓</button>
             </div>
         </div>
 
@@ -345,37 +353,37 @@
             <div class="kpi-card">
                 <div class="kpi-top">
                     <span class="kpi-label">Completed Orders</span>
-                    <span class="growth-badge growth-green">↗ 77.6%</span>
+                    <span class="growth-badge growth-green" id="completedShare">—</span>
                 </div>
-                <div class="kpi-val">13,962</div>
+                <div class="kpi-val" id="completedKpi">—</div>
                 <span style="font-size: 0.75rem; color: var(--text-muted);">Out of 18,000 total orders</span>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-top">
                     <span class="kpi-label">Completed Revenue</span>
-                    <span class="growth-badge growth-green">↗ ₹73.02L</span>
+                    <span class="growth-badge growth-green">Net sales</span>
                 </div>
-                <div class="kpi-val">₹73,01,698</div>
+                <div class="kpi-val" id="revenueKpi">—</div>
                 <span style="font-size: 0.75rem; color: var(--text-muted);">Realized customer spend</span>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-top">
                     <span class="kpi-label">Loss-Making Leaks</span>
-                    <span class="growth-badge growth-red">↘ 38.1%</span>
+                    <span class="growth-badge growth-red" id="leakageShare">—</span>
                 </div>
-                <div class="kpi-val" style="color: var(--red);">5,315</div>
+                <div class="kpi-val" id="leakageKpi" style="color: var(--red);">—</div>
                 <span style="font-size: 0.75rem; color: var(--red);">Transactions with negative margin</span>
             </div>
 
             <div class="kpi-card">
                 <div class="kpi-top">
                     <span class="kpi-label">Total Estimated Leakage</span>
-                    <span class="growth-badge growth-red">↘ -₹12.14L</span>
+                    <span class="growth-badge growth-red">At-risk value</span>
                 </div>
-                <div class="kpi-val" style="color: var(--red);">₹12,14,115</div>
-                <span style="font-size: 0.75rem; color: var(--text-muted);">16.6% bottom-line erosion</span>
+                <div class="kpi-val" id="leakageValueKpi" style="color: var(--red);">—</div>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Estimated negative gross margin</span>
             </div>
         </div>
 
@@ -407,15 +415,16 @@
                 </div>
 
                 <div class="filter-row">
-                    <button class="tab-btn active" onclick="filterData('all', this)">All Orders (18,000)</button>
-                    <button class="tab-btn" onclick="filterData('loss', this)">Loss Making (5,315)</button>
-                    <button class="tab-btn" onclick="filterData('profit', this)">Profitable (8,647)</button>
-                    <button class="tab-btn" onclick="filterData('misprice', this)">Catalog Mispricings (4,770)</button>
-                    <button class="tab-btn" onclick="filterData('promo', this)">Promo Leakage (545)</button>
-                    <button class="tab-btn" onclick="filterData('returns', this)">Returns (1,431)</button>
+                    <button class="tab-btn active" data-filter="all" onclick="filterData('all', this)">All Orders</button>
+                    <button class="tab-btn" data-filter="loss" onclick="filterData('loss', this)">Loss Making</button>
+                    <button class="tab-btn" data-filter="profit" onclick="filterData('profit', this)">Profitable</button>
+                    <button class="tab-btn" data-filter="misprice" onclick="filterData('misprice', this)">Price Below Cost</button>
+                    <button class="tab-btn" data-filter="promo" onclick="filterData('promo', this)">Promo Leakage</button>
+                    <button class="tab-btn" data-filter="returns" onclick="filterData('returns', this)">Returns</button>
                 </div>
 
-                <table id="mainTable">
+                <div class="table-toolbar"><span id="resultCount" aria-live="polite"></span><div class="pagination"><button class="action-pill" id="prevPage">Previous</button><span id="pageLabel"></span><button class="action-pill" id="nextPage">Next</button></div></div>
+                <div class="table-wrap"><table id="mainTable">
                     <thead>
                         <tr>
                             <th>Order ID</th>
@@ -426,13 +435,13 @@
                             <th>Amount</th>
                             <th>Unit Cost</th>
                             <th>Profit Estimate</th>
-                            <th>Risk Score</th>
+                            <th>Review Signal</th>
                             <th>Tags</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
-                </table>
+                </table></div>
 
                 <div id="auditBox" class="audit-box" style="display: none;"></div>
             </div>
@@ -454,20 +463,19 @@
             <div class="chart-grid">
                 <div class="card">
                     <div class="card-header">
-                        <h3>From-Scratch K-Means Customer Clustering</h3>
-                        <span class="dropdown-pill">Silhouette: 0.384</span>
+                        <h3>Customer RFM Snapshot</h3>
+                        <span class="dropdown-pill">2,971 customer profiles</span>
                     </div>
                     <canvas id="rfmChart" height="150"></canvas>
                 </div>
                 <div class="card">
                     <div class="card-header">
-                        <h3>Discovered Customer Segments (2,971 Total)</h3>
+                        <h3>About this view</h3>
                     </div>
                     <div style="font-size: 0.85rem; line-height: 1.8; color: var(--text-body);">
-                        <p><strong style="color: var(--green);">• High-Value Champions (28%):</strong> Low recency (24d), High spend (₹4,500). VIP retention.</p>
-                        <p><strong style="color: var(--amber);">• At-Risk Loyalists (19%):</strong> High recency (142d), High spend (₹3,900). Winback promos.</p>
-                        <p><strong style="color: var(--teal);">• Moderate Regulars (32%):</strong> Low recency (38d), Moderate spend (₹1,850). Cross-sells.</p>
-                        <p><strong style="color: var(--text-muted);">• Lapsed Occasional (21%):</strong> High recency (165d), Low spend (₹720). Enforce price floors.</p>
+                        <p>Each point shows one customer’s days since their last completed order and total completed-order spend.</p>
+                        <p>Colors are descriptive spend/recency bands, not K-Means assignments or predictions.</p>
+                        <p>To reproduce the from-scratch K-Means fit and its evaluation, run the optional Streamlit dashboard using the README steps.</p>
                     </div>
                 </div>
             </div>
@@ -477,7 +485,8 @@
         <div id="tab-notes" class="view-panel">
             <div class="card" style="line-height: 1.8;">
                 <h3 style="margin-bottom: 10px;">Methodological Transparency</h3>
-                <p>Per Datathon guidelines, the educational dataset contains decoupled price and cost distributions. Our engine identified <strong>4,770 catalog mispricings</strong> where base selling price was recorded below unit cost prior to discounts.</p>
+                <p>This is a synthetic educational dataset. The audit flags <strong>4,770 below-cost orders across 76 SKUs</strong>; that signal does not prove the price was erroneous or unplanned.</p>
+                <p>Negative gross margin is an estimate from the provided unit price, discount, quantity, and product cost. The prototype does not connect to a checkout system or prove recoverability.</p>
                 <div class="formula-text">
                     <strong>UNIT MARGIN FORMULA:</strong><br>
                     Estimated Margin = Quantity × [ Unit_Price × (1 - Discount_Pct) - Unit_Cost ]
@@ -489,6 +498,10 @@
     <script>
         let DATA = null;
         let activeFilter = 'all';
+        let currentPage = 1;
+        const pageSize = 15;
+        let trendChart = null;
+        let categoryChart = null;
 
         function switchTab(viewId, btn) {
             document.querySelectorAll('.view-panel').forEach(v => v.classList.remove('active'));
@@ -507,17 +520,45 @@
                 const res = await fetch('./data.json');
                 DATA = await res.json();
             }
+            document.getElementById('completedKpi').textContent = DATA.completed_tx.toLocaleString('en-IN');
+            document.getElementById('revenueKpi').textContent = `₹${Math.round(DATA.total_completed_rev).toLocaleString('en-IN')}`;
+            document.getElementById('leakageKpi').textContent = DATA.leakage_tx.toLocaleString('en-IN');
+            document.getElementById('leakageValueKpi').textContent = `₹${Math.round(DATA.total_leakage_loss).toLocaleString('en-IN')}`;
+            document.getElementById('completedShare').textContent = `${(DATA.completed_tx / DATA.total_tx * 100).toFixed(1)}% of total`;
+            document.getElementById('leakageShare').textContent = `${(DATA.leakage_tx / DATA.completed_tx * 100).toFixed(1)}% of completed`;
+            document.getElementById('datasetCount').textContent = `📅 ${DATA.total_tx.toLocaleString('en-IN')} Orders`;
+            document.querySelector('#tab-customers .dropdown-pill').textContent = `${DATA.rfm_customers.length.toLocaleString('en-IN')} customer profiles`;
+            document.querySelector('.sidebar-bottom p:last-child').textContent = `${DATA.total_tx.toLocaleString('en-IN')} Transactions Ingested`;
+            document.querySelector('.kpi-card:nth-child(1) span:last-child').textContent = `Out of ${DATA.total_tx.toLocaleString('en-IN')} total orders`;
+            document.querySelector('.kpi-card:nth-child(4) span:last-child').textContent = `${(DATA.total_leakage_loss / DATA.total_completed_rev * 100).toFixed(1)}% of completed revenue`;
+            document.querySelectorAll('[data-filter]').forEach(button => {
+                const counts = { all: DATA.total_tx, loss: DATA.leakage_tx, profit: DATA.profitable_tx, misprice: DATA.recent_orders.filter(t => t.reason === 'Price Below Cost').length, promo: DATA.recent_orders.filter(t => t.reason === 'Excessive Promo').length, returns: DATA.returned_tx };
+                button.textContent = `${button.textContent.trim()} (${(counts[button.dataset.filter] || 0).toLocaleString('en-IN')})`;
+            });
+            document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; renderRows(); });
+            document.getElementById('prevPage').addEventListener('click', () => { currentPage = Math.max(1, currentPage - 1); renderRows(); });
+            document.getElementById('nextPage').addEventListener('click', () => { currentPage += 1; renderRows(); });
+            document.getElementById('exportButton').addEventListener('click', exportRows);
             renderRows();
 
-            // Revenue Trend Chart (SalesPro smooth curve)
-            new Chart(document.getElementById('trendChart'), {
+            const monthly = {};
+            DATA.recent_orders.forEach(t => {
+                if (t.status !== 'Completed') return;
+                const month = t.date.slice(0, 7);
+                monthly[month] ||= { revenue: 0, leakage: 0 };
+                monthly[month].revenue += t.revenue;
+                if (t.is_leakage) monthly[month].leakage += Math.abs(t.total_margin);
+            });
+            const months = Object.keys(monthly).sort();
+            const monthLabels = months.map(m => new Date(`${m}-01T00:00:00`).toLocaleDateString('en', { month: 'short', year: '2-digit' }));
+            trendChart = new Chart(document.getElementById('trendChart'), {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                    labels: monthLabels,
                     datasets: [
                         {
                             label: 'Completed Sales (₹ Lakhs)',
-                            data: [4.2, 5.1, 7.8, 6.9, 8.4, 9.2, 8.1, 9.8, 7.4, 6.1],
+                            data: months.map(m => monthly[m].revenue / 100000),
                             borderColor: '#f97316',
                             backgroundColor: 'rgba(249, 115, 22, 0.08)',
                             fill: true,
@@ -525,7 +566,7 @@
                         },
                         {
                             label: 'Margin Leakage (₹ Lakhs)',
-                            data: [0.8, 1.1, 1.5, 1.2, 1.6, 1.8, 1.4, 1.9, 1.2, 1.0],
+                            data: months.map(m => monthly[m].leakage / 100000),
                             borderColor: '#e11d48',
                             borderDash: [5, 5],
                             tension: 0.4
@@ -540,19 +581,14 @@
             });
 
             // Horizontal Category Bar Chart (SalesPro green bar aesthetic)
-            const cats = Object.keys(DATA.cat_revenue);
+            const cats = Object.keys(DATA.cat_revenue).sort();
             const revs = cats.map(c => DATA.cat_revenue[c] / 100000);
-            new Chart(document.getElementById('categoryChart'), {
+            categoryChart = new Chart(document.getElementById('categoryChart'), {
                 type: 'bar',
                 data: {
                     labels: cats,
-                    datasets: [{
-                        label: 'Sales Revenue (₹ Lakhs)',
-                        data: revs,
-                        backgroundColor: '#0d9488',
-                        borderRadius: 8,
-                        barThickness: 16
-                    }]
+                    datasets: [{ label: 'Sales Revenue (₹ Lakhs)', data: revs, backgroundColor: '#0d9488', borderRadius: 8, barThickness: 16 },
+                        { label: 'Margin (₹ Lakhs)', data: cats.map(c => DATA.cat_margin[c] / 100000), backgroundColor: '#f97316', borderRadius: 8, barThickness: 16 }]
                 },
                 options: {
                     indexAxis: 'y',
@@ -568,7 +604,7 @@
                 data: {
                     labels: ['Completed', 'Returned', 'Cancelled', 'Pending'],
                     datasets: [{
-                        data: [DATA.status_counts.Completed, DATA.status_counts.Returned, DATA.status_counts.Cancelled, DATA.status_counts.Pending],
+                        data: ['Completed', 'Returned', 'Cancelled', 'Pending'].map(s => DATA.status_counts[s] || 0),
                         backgroundColor: ['#10b981', '#f59e0b', '#e11d48', '#94a3b8'],
                         borderWidth: 2
                     }]
@@ -599,46 +635,77 @@
 
         function filterData(type, btn) {
             activeFilter = type;
+            currentPage = 1;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             renderRows();
         }
 
-        function renderRows() {
-            let list = DATA.recent_orders;
-            if (activeFilter === 'loss') list = DATA.recent_orders.filter(t => t.is_leakage);
-            else if (activeFilter === 'profit') list = DATA.recent_orders.filter(t => t.status === 'Completed' && !t.is_leakage);
-            else if (activeFilter === 'misprice') list = DATA.recent_orders.filter(t => t.reason === 'Catalog Mispricing');
-            else if (activeFilter === 'promo') list = DATA.recent_orders.filter(t => t.reason === 'Excessive Promo');
-            else if (activeFilter === 'returns') list = DATA.recent_orders.filter(t => t.status === 'Returned');
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+        }
 
+        function getFilteredRows() {
+            let list = DATA.recent_orders;
+            if (activeFilter === 'loss') list = list.filter(t => t.is_leakage);
+            else if (activeFilter === 'profit') list = list.filter(t => t.status === 'Completed' && !t.is_leakage);
+            else if (activeFilter === 'misprice') list = list.filter(t => t.reason === 'Price Below Cost');
+            else if (activeFilter === 'promo') list = list.filter(t => t.reason === 'Excessive Promo');
+            else if (activeFilter === 'returns') list = list.filter(t => t.status === 'Returned');
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            if (query) list = list.filter(t => [t.id, t.customer_id, t.product_id, t.category, t.status, t.reason, t.tag].some(v => String(v).toLowerCase().includes(query)));
+            return list;
+        }
+
+        function renderRows() {
+            const list = getFilteredRows();
+            const pageCount = Math.max(1, Math.ceil(list.length / pageSize));
+            currentPage = Math.min(currentPage, pageCount);
+            const start = (currentPage - 1) * pageSize;
+            const pageRows = list.slice(start, start + pageSize);
             const tbody = document.querySelector('#mainTable tbody');
-            tbody.innerHTML = list.slice(0, 12).map(t => {
+            tbody.innerHTML = pageRows.map(t => {
                 const isLoss = t.total_margin < 0 && t.status === 'Completed';
                 const pBadge = isLoss
                     ? `<span class="pill pill-loss">Loss (-₹${Math.abs(t.total_margin)})</span>`
                     : (t.status === 'Completed' ? `<span class="pill pill-profit">Profit (+₹${t.total_margin})</span>` : `<span class="pill pill-tag">${t.status}</span>`);
 
-                const rScore = t.risk_score >= 80
-                    ? `<span style="font-weight:700; color: var(--red);">${t.risk_score}/100</span>`
-                    : `<span style="font-weight:700; color: var(--green);">${t.risk_score}/100</span>`;
+                const reviewSignal = isLoss
+                    ? `<span class="pill pill-tag">${escapeHtml(t.reason)}</span>`
+                    : `<span class="pill pill-tag">${escapeHtml(t.status === 'Completed' ? 'No negative-margin flag' : t.status)}</span>`;
 
                 return `
-                    <tr style="cursor: pointer;" onclick="showAudit('${t.id}')">
-                        <td><strong>${t.id}</strong></td>
-                        <td style="color: var(--text-muted);">${t.date}</td>
-                        <td>${t.customer_id}</td>
-                        <td style="font-weight: 500;">${t.product_id}</td>
-                        <td>${t.category}</td>
+                    <tr style="cursor: pointer;" onclick="showAudit('${escapeHtml(t.id)}')">
+                        <td><strong>${escapeHtml(t.id)}</strong></td>
+                        <td style="color: var(--text-muted);">${escapeHtml(t.date)}</td>
+                        <td>${escapeHtml(t.customer_id)}</td>
+                        <td style="font-weight: 500;">${escapeHtml(t.product_id)}</td>
+                        <td>${escapeHtml(t.category)}</td>
                         <td style="font-weight: 600;">₹${t.revenue}</td>
                         <td style="color: var(--text-muted);">₹${t.unit_cost}</td>
                         <td>${pBadge}</td>
-                        <td>${rScore}</td>
-                        <td><span class="pill pill-tag">${t.tag}</span></td>
-                        <td><button class="action-pill" style="padding: 4px 10px; font-size: 0.72rem;" onclick="event.stopPropagation(); showAudit('${t.id}')">Inspect</button></td>
+                        <td>${reviewSignal}</td>
+                        <td><span class="pill pill-tag">${escapeHtml(t.tag)}</span></td>
+                        <td><button class="action-pill" style="padding: 4px 10px; font-size: 0.72rem;" onclick="event.stopPropagation(); showAudit('${escapeHtml(t.id)}')">Inspect</button></td>
                     </tr>
                 `;
             }).join('');
+            document.getElementById('resultCount').textContent = list.length ? `Showing ${start + 1}–${Math.min(start + pageSize, list.length)} of ${list.length.toLocaleString('en-IN')} matching orders` : 'No matching orders';
+            document.getElementById('pageLabel').textContent = `Page ${currentPage} of ${pageCount}`;
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= pageCount;
+        }
+
+        function exportRows() {
+            const rows = getFilteredRows();
+            const columns = ['id', 'date', 'customer_id', 'product_id', 'category', 'status', 'quantity', 'unit_price', 'discount_pct', 'unit_cost', 'revenue', 'total_margin', 'reason'];
+            const csv = [columns.join(','), ...rows.map(row => columns.map(key => `"${String(row[key] ?? '').replace(/"/g, '""')}"`).join(','))].join('\r\n');
+            const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `profitguard-${activeFilter}-orders.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
         }
 
         function showAudit(txId) {
@@ -662,7 +729,7 @@
                     3. Total Order Margin = ${tx.quantity} units × ₹${tx.unit_margin} = <strong style="color: ${isLoss ? 'var(--red)' : 'var(--green)'};">₹${tx.total_margin}</strong>
                 </div>
                 <p style="color: var(--text-body); font-size: 0.82rem;">
-                    <strong>Diagnosis:</strong> ${tx.reason} — ${isLoss ? 'Recommended action: Correct catalog unit price or apply promo barrier at checkout.' : 'Economics are sound.'}
+                    <strong>Diagnosis:</strong> ${tx.reason} — ${isLoss ? 'Suggested review: verify the price, discount, cost basis, and promotion context.' : 'Economics are sound.'}
                 </p>
             `;
         }
